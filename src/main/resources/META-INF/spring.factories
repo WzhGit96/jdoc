@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.cmpay.lemon.wzh.jdoc.autoconfiguration.JdocAutoConfiguration
