@@ -8,4 +8,19 @@ import java.util.List;
  */
 public class Input {
     private List<FieldProperty> fields;
+
+    public List<FieldProperty> getFields() {
+        return fields;
+    }
+
+    public void setFields(List<FieldProperty> fields) {
+        this.fields = fields;
+    }
+
+    @Override
+    public String toString() {
+        return "Input{" +
+                "fields=" + fields +
+                '}';
+    }
 }
