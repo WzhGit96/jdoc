@@ -17,6 +17,7 @@ import java.util.stream.Stream;
  * @since 2021/7/28
  */
 public final class ClassUtil {
+    private static final String FIL_PREFIX = "Controller";
     private static final String SUFFIX = ".class";
 
     private ClassUtil() {
@@ -86,7 +87,7 @@ public final class ClassUtil {
         if (!dir.exists() || !dir.isDirectory()) {
             return;
         }
-        File[] dirfFiles = dir.listFiles(file -> (recursive && file.isDirectory()) || (file.getName().endsWith(SUFFIX)));
+        File[] dirfFiles = dir.listFiles(file -> (recursive && file.isDirectory()) || (file.getName().endsWith(SUFFIX) && file.getName().contains(FIL_PREFIX)));
         if (dirfFiles == null || dirfFiles.length <= 0) {
             return;
         }

@@ -1,24 +1,28 @@
 package com.wzh.jdoc.service.impl;
 
+import com.wzh.jdoc.controller.JdocController;
 import com.wzh.jdoc.entity.*;
 import com.wzh.jdoc.service.JdocService;
 import com.wzh.jdoc.util.ClassUtil;
 import com.wzh.jdoc.util.MappingUtil;
-import freemarker.template.utility.StringUtil;
+import com.wzh.jdoc.util.SuperApplicationContext;
 import io.swagger.annotations.ApiModelProperty;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -27,21 +31,26 @@ import java.util.stream.Stream;
  */
 @Service
 public class JdocServiceImpl implements JdocService {
-    private static final String BASE_PACKAGE = "com.cmpay.*.controller";
-
     private static final String INPUT_PARAMETER_REGEX = "DTO";
 
     private static final String RETURN_CLASS_NAME = "GenericRspDTO";
 
+    private static final String NOBODY = "NoBody";
+
+    @Resource
+    private SuperApplicationContext superApplicationContext;
+
     @Override
     public List<InterfaceInfoList> getInterfaceInfoList() throws IOException {
-        List<Class<?>> classes = ClassUtil.getClasses(BASE_PACKAGE);
+        Map<String, Object> controllers = getSuperControllers();
+        String packageName = getPackageName(controllers);
+        List<Class<?>> classes = ClassUtil.getClasses(packageName);
         List<InterfaceInfoList> result = new ArrayList<>();
         classes.forEach(clz -> {
             InterfaceInfoList interfaceInfoList = new InterfaceInfoList();
             RequestMapping headAnnotation = clz.getAnnotation(RequestMapping.class);
             String urlPrefix = headAnnotation == null ? "" : headAnnotation.value()[0];
-            Method[] methods = clz.getMethods();
+            Method[] methods = clz.getDeclaredMethods();
             List<InterfaceInfo> interfaceInfos = new ArrayList<>();
             Stream.of(methods).forEach(method -> {
                 InterfaceInfo interfaceInfo = new InterfaceInfo();
@@ -67,7 +76,7 @@ public class JdocServiceImpl implements JdocService {
             interfaceInfoList.setInterfaceInfoList(interfaceInfos);
             result.add(interfaceInfoList);
         });
-        return null;
+        return result;
     }
 
     private boolean isMappingAnnotation(Annotation annotation) {
@@ -95,9 +104,20 @@ public class JdocServiceImpl implements JdocService {
         Class<?> fieldClz = outputClz;
         // 如果是标准的GenericRspDTO接口
         if (RETURN_CLASS_NAME.equals(outputClz.getSimpleName())) {
-            Type type = outputClz.getGenericSuperclass();
+            Type type = outputClz.getSuperclass().getSuperclass().getGenericSuperclass();
+            if (!(type instanceof ParameterizedType)) {
+                fieldClz = Object.class;
+            }
             ParameterizedType parameterizedType = (ParameterizedType) type;
-            fieldClz = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+            Type fieldType =  parameterizedType.getActualTypeArguments()[0];
+            if (!(fieldType instanceof Class)) {
+                fieldClz = Object.class;
+            } else {
+                fieldClz = (Class) fieldType;
+            }
+        }
+        if (NOBODY.equalsIgnoreCase(fieldClz.getSimpleName()) || Void.class.getSimpleName().equalsIgnoreCase(fieldClz.getSimpleName())) {
+            return null;
         }
         Field[] fields = fieldClz.getDeclaredFields();
         output.setFields(getFieldsList(fields));
@@ -119,5 +139,28 @@ public class JdocServiceImpl implements JdocService {
             fieldPropertyList.add(fieldProperty);
         });
         return fieldPropertyList;
+    }
+
+    private Map<String, Object> getSuperControllers() {
+        ApplicationContext applicationContext = superApplicationContext.getApplicationContext();
+        Map<String, Object> controllers = applicationContext.getBeansWithAnnotation(RestController.class);
+        Map<String, Object> filterMap = new HashMap<>();
+        if (CollectionUtils.isEmpty(controllers)) {
+            controllers = applicationContext.getBeansWithAnnotation(Controller.class);
+        }
+        controllers.forEach((k, v) -> {
+            if (!(v instanceof JdocController)) {
+                filterMap.put(k, v);
+            }
+        });
+        Assert.isTrue(!CollectionUtils.isEmpty(filterMap), "没有匹配的controller");
+        return filterMap;
+    }
+
+    private String getPackageName(Map<String, Object> controllers) {
+        List<String> key = new ArrayList<>(controllers.keySet());
+        String firstKey = key.get(0);
+        Object packObject = controllers.get(firstKey);
+        return packObject.getClass().getPackage().getName();
     }
 }
