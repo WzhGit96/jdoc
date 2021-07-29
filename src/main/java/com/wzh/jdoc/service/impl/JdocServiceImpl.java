@@ -104,18 +104,9 @@ public class JdocServiceImpl implements JdocService {
         Class<?> fieldClz = outputClz;
         // 如果是标准的GenericRspDTO接口
         if (RETURN_CLASS_NAME.equals(outputClz.getSimpleName())) {
-            Type type = outputClz.getSuperclass().getSuperclass().getGenericSuperclass();
-            if (!(type instanceof ParameterizedType)) {
-                fieldClz = Object.class;
-            } else {
-                ParameterizedType parameterizedType = (ParameterizedType) type;
-                Type fieldType =  parameterizedType.getActualTypeArguments()[0];
-                if (!(fieldType instanceof Class)) {
-                    fieldClz = Object.class;
-                } else {
-                    fieldClz = (Class) fieldType;
-                }
-            }
+            Type type = method.getGenericReturnType();
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            fieldClz = (Class<?>) parameterizedType.getActualTypeArguments()[0];
         }
         if (NOBODY.equalsIgnoreCase(fieldClz.getSimpleName()) || Void.class.getSimpleName().equalsIgnoreCase(fieldClz.getSimpleName())) {
             return null;
