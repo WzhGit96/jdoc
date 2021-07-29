@@ -6,6 +6,7 @@ import com.wzh.jdoc.service.JdocService;
 import com.wzh.jdoc.util.ClassUtil;
 import com.wzh.jdoc.util.MappingUtil;
 import com.wzh.jdoc.util.SuperApplicationContext;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModelProperty;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.context.ApplicationContext;
@@ -41,13 +42,14 @@ public class JdocServiceImpl implements JdocService {
     private SuperApplicationContext superApplicationContext;
 
     @Override
-    public List<InterfaceInfoList> getInterfaceInfoList() throws IOException {
+    public Model getInterfaceInfoList() throws IOException {
         Map<String, Object> controllers = getSuperControllers();
         String packageName = getPackageName(controllers);
+        // 可以通过spring 拿到所有controller.class,getClasses方法只是让你更好的理解什么是spring ioc
         List<Class<?>> classes = ClassUtil.getClasses(packageName);
-        List<InterfaceInfoList> result = new ArrayList<>();
+        List<ModelProperty> modelProperties = new ArrayList<>();
         classes.forEach(clz -> {
-            InterfaceInfoList interfaceInfoList = new InterfaceInfoList();
+            ModelProperty modelProperty = new ModelProperty();
             RequestMapping headAnnotation = clz.getAnnotation(RequestMapping.class);
             String urlPrefix = headAnnotation == null ? "" : headAnnotation.value()[0];
             Method[] methods = clz.getDeclaredMethods();
@@ -73,10 +75,17 @@ public class JdocServiceImpl implements JdocService {
                 interfaceInfo.setOutput(output);
                 interfaceInfos.add(interfaceInfo);
             });
-            interfaceInfoList.setInterfaceInfoList(interfaceInfos);
-            result.add(interfaceInfoList);
+            Api annoApi = clz.getAnnotation(Api.class);
+            if (annoApi != null) {
+                String value = annoApi.value();
+                String tag = annoApi.value();
+                modelProperty.setModelDesc(value.trim().length() > 0 ? value : tag);
+            }
+            modelProperty.setInterfaceInfoList(interfaceInfos);
+            modelProperty.setModelName(clz.getSimpleName());
+            modelProperties.add(modelProperty);
         });
-        return result;
+        return Model.newInstance(modelProperties);
     }
 
     private boolean isMappingAnnotation(Annotation annotation) {
@@ -137,10 +146,14 @@ public class JdocServiceImpl implements JdocService {
         ApplicationContext applicationContext = superApplicationContext.getApplicationContext();
         Map<String, Object> controllers = applicationContext.getBeansWithAnnotation(RestController.class);
         Map<String, Object> filterMap = new HashMap<>();
-        if (CollectionUtils.isEmpty(controllers)) {
-            controllers = applicationContext.getBeansWithAnnotation(Controller.class);
+        if (!CollectionUtils.isEmpty(applicationContext.getBeansWithAnnotation(Controller.class))) {
+            controllers.putAll(applicationContext.getBeansWithAnnotation(Controller.class));
         }
         controllers.forEach((k, v) -> {
+            // 能取到包名即可
+            if (!CollectionUtils.isEmpty(filterMap)) {
+                return;
+            }
             if (!(v instanceof JdocController)) {
                 filterMap.put(k, v);
             }

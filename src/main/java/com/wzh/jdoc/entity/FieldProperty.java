@@ -11,7 +11,7 @@ public class FieldProperty {
 
     private String fieldType;
 
-    private int length;
+    private Integer length;
 
     private boolean necessary;
 
