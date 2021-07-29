@@ -107,13 +107,14 @@ public class JdocServiceImpl implements JdocService {
             Type type = outputClz.getSuperclass().getSuperclass().getGenericSuperclass();
             if (!(type instanceof ParameterizedType)) {
                 fieldClz = Object.class;
-            }
-            ParameterizedType parameterizedType = (ParameterizedType) type;
-            Type fieldType =  parameterizedType.getActualTypeArguments()[0];
-            if (!(fieldType instanceof Class)) {
-                fieldClz = Object.class;
             } else {
-                fieldClz = (Class) fieldType;
+                ParameterizedType parameterizedType = (ParameterizedType) type;
+                Type fieldType =  parameterizedType.getActualTypeArguments()[0];
+                if (!(fieldType instanceof Class)) {
+                    fieldClz = Object.class;
+                } else {
+                    fieldClz = (Class) fieldType;
+                }
             }
         }
         if (NOBODY.equalsIgnoreCase(fieldClz.getSimpleName()) || Void.class.getSimpleName().equalsIgnoreCase(fieldClz.getSimpleName())) {
