@@ -48,6 +48,7 @@ public class JdocServiceImpl implements JdocService {
         // 可以通过spring 拿到所有controller.class,getClasses方法只是让你更好的理解什么是spring ioc
         List<Class<?>> classes = ClassUtil.getClasses(packageName);
         List<ModelProperty> modelProperties = new ArrayList<>();
+        List<FunctionTrade> functionTradeList = new ArrayList<>();
         classes.forEach(clz -> {
             ModelProperty modelProperty = new ModelProperty();
             RequestMapping headAnnotation = clz.getAnnotation(RequestMapping.class);
@@ -55,25 +56,10 @@ public class JdocServiceImpl implements JdocService {
             Method[] methods = clz.getDeclaredMethods();
             List<InterfaceInfo> interfaceInfos = new ArrayList<>();
             Stream.of(methods).forEach(method -> {
-                InterfaceInfo interfaceInfo = new InterfaceInfo();
-                Annotation[] annotations = method.getAnnotations();
-                Stream.of(annotations).forEach(anno -> {
-                    if (isMappingAnnotation(anno)) {
-                        MappingInfo mappingInfo = MappingUtil.getMappingInfo(anno);
-                        interfaceInfo.setUrl(urlPrefix + mappingInfo.getUrl());
-                        interfaceInfo.setRequestMethod(mappingInfo.getRequestMethod());
-                    }
-                    if (anno instanceof ApiOperation) {
-                        interfaceInfo.setFunctionDesc(((ApiOperation) anno).value());
-                    }
-                });
-                interfaceInfo.setFunctionName(method.getName());
-                // 标准接口 reqDTO代码规范
-                Input input = getInputProperty(method);
-                Output output = getOutputProperty(method);
-                interfaceInfo.setInput(input);
-                interfaceInfo.setOutput(output);
-                interfaceInfos.add(interfaceInfo);
+                // 获取接口信息
+                this.dealInterfaceInfo(method, interfaceInfos, urlPrefix);
+                // 获取模块清单
+                this.dealFunctionTradeInfo(method, functionTradeList, clz);
             });
             Api annoApi = clz.getAnnotation(Api.class);
             if (annoApi != null) {
@@ -85,7 +71,7 @@ public class JdocServiceImpl implements JdocService {
             modelProperty.setModelName(clz.getSimpleName());
             modelProperties.add(modelProperty);
         });
-        return Model.newInstance(modelProperties);
+        return Model.newInstance(modelProperties, functionTradeList);
     }
 
     private boolean isMappingAnnotation(Annotation annotation) {
@@ -167,5 +153,38 @@ public class JdocServiceImpl implements JdocService {
         String firstKey = key.get(0);
         Object packObject = controllers.get(firstKey);
         return packObject.getClass().getPackage().getName();
+    }
+
+    private void dealInterfaceInfo(Method method, List<InterfaceInfo> interfaceInfos, String urlPrefix) {
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        Annotation[] annotations = method.getAnnotations();
+        Stream.of(annotations).forEach(anno -> {
+            if (isMappingAnnotation(anno)) {
+                MappingInfo mappingInfo = MappingUtil.getMappingInfo(anno);
+                interfaceInfo.setUrl(urlPrefix + mappingInfo.getUrl());
+                interfaceInfo.setRequestMethod(mappingInfo.getRequestMethod());
+            }
+            if (anno instanceof ApiOperation) {
+                interfaceInfo.setFunctionDesc(((ApiOperation) anno).value());
+            }
+        });
+        interfaceInfo.setFunctionName(method.getName());
+        // 标准接口 reqDTO代码规范
+        Input input = getInputProperty(method);
+        Output output = getOutputProperty(method);
+        interfaceInfo.setInput(input);
+        interfaceInfo.setOutput(output);
+        interfaceInfos.add(interfaceInfo);
+    }
+
+    private void dealFunctionTradeInfo(Method method, List<FunctionTrade> functionTradeList, Class<?> clz) {
+        FunctionTrade functionTrade = new FunctionTrade();
+        functionTrade.setModelName(clz.getSimpleName());
+        functionTrade.setFunctionName(method.getName());
+        Annotation annotation = method.getAnnotation(ApiOperation.class);
+        functionTrade.setFunctionDesc(annotation == null ? "" : ((ApiOperation) annotation).value());
+        // 默认新增
+        functionTrade.setRemark("新增");
+        functionTradeList.add(functionTrade);
     }
 }
