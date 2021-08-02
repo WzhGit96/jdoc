@@ -3,6 +3,7 @@ package com.wzh.jdoc.service.impl;
 import com.wzh.jdoc.controller.JdocController;
 import com.wzh.jdoc.entity.*;
 import com.wzh.jdoc.service.JdocService;
+import com.wzh.jdoc.util.Cache;
 import com.wzh.jdoc.util.ClassUtil;
 import com.wzh.jdoc.util.MappingUtil;
 import com.wzh.jdoc.util.SuperApplicationContext;
@@ -24,6 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -43,12 +45,17 @@ public class JdocServiceImpl implements JdocService {
 
     @Override
     public Model getInterfaceInfoList() throws IOException {
+        if (Cache.get() != null) {
+            return Cache.get();
+        }
         Map<String, Object> controllers = getSuperControllers();
         String packageName = getPackageName(controllers);
         // 可以通过spring 拿到所有controller.class,getClasses方法只是让你更好的理解什么是spring ioc
         List<Class<?>> classes = ClassUtil.getClasses(packageName);
         List<ModelProperty> modelProperties = new ArrayList<>();
         List<FunctionTrade> functionTradeList = new ArrayList<>();
+        AtomicInteger modelId = new AtomicInteger();
+        AtomicInteger infId = new AtomicInteger();
         classes.forEach(clz -> {
             ModelProperty modelProperty = new ModelProperty();
             RequestMapping headAnnotation = clz.getAnnotation(RequestMapping.class);
@@ -57,7 +64,7 @@ public class JdocServiceImpl implements JdocService {
             List<InterfaceInfo> interfaceInfos = new ArrayList<>();
             Stream.of(methods).forEach(method -> {
                 // 获取接口信息
-                this.dealInterfaceInfo(method, interfaceInfos, urlPrefix);
+                this.dealInterfaceInfo(method, interfaceInfos, urlPrefix, infId);
                 // 获取模块清单
                 this.dealFunctionTradeInfo(method, functionTradeList, clz);
             });
@@ -69,9 +76,13 @@ public class JdocServiceImpl implements JdocService {
             }
             modelProperty.setInterfaceInfoList(interfaceInfos);
             modelProperty.setModelName(clz.getSimpleName());
+            modelProperty.setModelId(String.valueOf(modelId.addAndGet(1)));
             modelProperties.add(modelProperty);
         });
-        return Model.newInstance(modelProperties, functionTradeList);
+        Model model = Model.newInstance(modelProperties, functionTradeList);
+        // 放入缓存
+        Cache.put(model);
+        return model;
     }
 
     private boolean isMappingAnnotation(Annotation annotation) {
@@ -155,7 +166,7 @@ public class JdocServiceImpl implements JdocService {
         return packObject.getClass().getPackage().getName();
     }
 
-    private void dealInterfaceInfo(Method method, List<InterfaceInfo> interfaceInfos, String urlPrefix) {
+    private void dealInterfaceInfo(Method method, List<InterfaceInfo> interfaceInfos, String urlPrefix, AtomicInteger infId) {
         InterfaceInfo interfaceInfo = new InterfaceInfo();
         Annotation[] annotations = method.getAnnotations();
         Stream.of(annotations).forEach(anno -> {
@@ -174,6 +185,7 @@ public class JdocServiceImpl implements JdocService {
         Output output = getOutputProperty(method);
         interfaceInfo.setInput(input);
         interfaceInfo.setOutput(output);
+        interfaceInfo.setId(String.valueOf(infId.addAndGet(1)));
         interfaceInfos.add(interfaceInfo);
     }
 

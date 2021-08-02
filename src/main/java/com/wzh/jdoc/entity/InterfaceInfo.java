@@ -5,6 +5,8 @@ package com.wzh.jdoc.entity;
  * @since 2021/7/27
  */
 public class InterfaceInfo {
+    private String id;
+
     private String seqNo;
 
     private String functionName;
@@ -18,6 +20,14 @@ public class InterfaceInfo {
     private Input input;
 
     private Output output;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getSeqNo() {
         return seqNo;
@@ -78,7 +88,8 @@ public class InterfaceInfo {
     @Override
     public String toString() {
         return "InterfaceInfo{" +
-                "seqNo='" + seqNo + '\'' +
+                "id='" + id + '\'' +
+                ", seqNo='" + seqNo + '\'' +
                 ", functionName='" + functionName + '\'' +
                 ", functionDesc='" + functionDesc + '\'' +
                 ", requestMethod='" + requestMethod + '\'' +

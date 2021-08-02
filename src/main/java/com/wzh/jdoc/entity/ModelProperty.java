@@ -7,6 +7,8 @@ import java.util.List;
  * @since 2021-07-29
  */
 public class ModelProperty {
+    private String modelId;
+
     private String seqNo;
 
     private String modelName;
@@ -14,6 +16,14 @@ public class ModelProperty {
     private String modelDesc;
 
     private List<InterfaceInfo> interfaceInfoList;
+
+    public String getModelId() {
+        return modelId;
+    }
+
+    public void setModelId(String modelId) {
+        this.modelId = modelId;
+    }
 
     public String getSeqNo() {
         return seqNo;
@@ -50,10 +60,11 @@ public class ModelProperty {
     @Override
     public String toString() {
         return "ModelProperty{" +
-                "seqNo='" + seqNo + '\'' +
+                "modelId='" + modelId + '\'' +
+                ", seqNo='" + seqNo + '\'' +
                 ", modelName='" + modelName + '\'' +
                 ", modelDesc='" + modelDesc + '\'' +
-                ", interfaceInfoLists=" + interfaceInfoList +
+                ", interfaceInfoList=" + interfaceInfoList +
                 '}';
     }
 }

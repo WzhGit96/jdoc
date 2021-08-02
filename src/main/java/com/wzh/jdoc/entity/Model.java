@@ -47,4 +47,6 @@ public class Model {
                 ", functionTradeList=" + functionTradeList +
                 '}';
     }
+
+
 }
