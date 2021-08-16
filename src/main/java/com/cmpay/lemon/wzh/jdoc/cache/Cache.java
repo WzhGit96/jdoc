@@ -1,6 +1,7 @@
-package com.wzh.jdoc.util;
+package com.cmpay.lemon.wzh.jdoc.cache;
 
 import com.wzh.jdoc.entity.Model;
+import org.springframework.stereotype.Component;
 import org.springframework.util.ConcurrentReferenceHashMap;
 
 import javax.annotation.PostConstruct;
@@ -11,6 +12,7 @@ import java.util.Map;
  * @author wzh
  * @since 2021/8/2
  */
+@Component
 public class Cache {
     private static final String CACHE_NAME = "apis";
     private static Map<String, Model> cache;
@@ -50,7 +52,7 @@ public class Cache {
      * @return model
      */
     public static Model get() {
-        return cache == null ? new Model() : cache.get(CACHE_NAME);
+        return cache == null ? null : cache.get(CACHE_NAME);
     }
 
     @PreDestroy

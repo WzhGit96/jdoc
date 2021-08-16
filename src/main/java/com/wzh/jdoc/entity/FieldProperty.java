@@ -41,11 +41,11 @@ public class FieldProperty {
         this.fieldType = fieldType;
     }
 
-    public int getLength() {
+    public Integer getLength() {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(Integer length) {
         this.length = length;
     }
 
