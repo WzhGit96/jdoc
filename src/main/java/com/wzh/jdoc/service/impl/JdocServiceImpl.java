@@ -114,6 +114,10 @@ public class JdocServiceImpl implements JdocService {
         // 如果是标准的GenericRspDTO接口
         if (RETURN_CLASS_NAME.equals(outputClz.getSimpleName())) {
             Type type = method.getGenericReturnType();
+            // 无泛型
+            if ("com.cmpay.framework.data.response.GenericRspDTO".equals(type.getTypeName())) {
+                return null;
+            }
             ParameterizedType parameterizedType = (ParameterizedType) type;
             fieldClz = (Class<?>) parameterizedType.getActualTypeArguments()[0];
         }

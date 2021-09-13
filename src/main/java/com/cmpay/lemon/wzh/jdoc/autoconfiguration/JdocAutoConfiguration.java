@@ -14,17 +14,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class JdocAutoConfiguration {
     @Bean
-    public JdocController getJdocController() {
+    public JdocController jdocController() {
         return new JdocController();
     }
 
     @Bean
-    public JdocService getJdocService() {
+    public JdocService jdocService() {
         return new JdocServiceImpl();
     }
 
     @Bean
-    public SuperApplicationContext getSuperApplicationContext() {
+    public SuperApplicationContext superApplicationContext() {
         return new SuperApplicationContext();
     }
 }
